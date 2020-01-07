@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using KModkit;
+using System.Text.RegularExpressions;
 
 public class TheBlackPage : MonoBehaviour {
     public KMAudio Audio;
@@ -48,8 +49,8 @@ public class TheBlackPage : MonoBehaviour {
 
     private static bool canPlayIntro = true;
 
-    private readonly int[] illegalStartpoints = { 7, 8, 10, 12, 22, 23, 25, 28, 29, 30};
-    private readonly int[] illegalEndpoints = { 6, 7, 9, 11, 21, 22, 24, 31, 32};
+    private readonly int[] illegalStartpoints = { 7, 8, 10, 12, 22, 23, 25, 28, 29, 30 };
+    private readonly int[] illegalEndpoints = { 6, 7, 9, 11, 21, 22, 24, 31, 32 };
 
     // Run as bomb loads
     public void Awake() {
@@ -275,5 +276,95 @@ public class TheBlackPage : MonoBehaviour {
 
         default: break; // Play nothing
         }
+    }
+
+
+    // Twitch Plays support - made by eXish
+
+
+    //twitch plays
+    private bool isValid(string s) {
+        int temp = 0;
+        bool check = false;
+        check = int.TryParse(s, out temp);
+        if (check) {
+            if (temp > 0 && temp < 31) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+#pragma warning disable 414
+    private readonly string TwitchHelpMessage = @"!{0} play [Presses the play button] | !{0} submit <starting> <ending> [Submits the specified 'starting' and 'ending' measures] | Valid measures are 1-30";
+#pragma warning restore 414
+    IEnumerator ProcessTwitchCommand(string command) {
+        if (Regex.IsMatch(command, @"^\s*play\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+            yield return null;
+            if (isPlaying) {
+                yield return "sendtochaterror The measures of The Black Page are already being played!";
+            }
+            else {
+                PlayButton.OnInteract();
+            }
+            yield break;
+        }
+        string[] parameters = command.Split(' ');
+        if (Regex.IsMatch(parameters[0], @"^\s*submit\s*$", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)) {
+            yield return null;
+            if (parameters.Length > 3) {
+                yield return "sendtochaterror Only 2 measures are needed to submit!";
+            }
+            else if (parameters.Length == 3) {
+                if (!isValid(parameters[1])) {
+                    yield return "sendtochaterror The specified measure '" + parameters[1] + "' is invalid!";
+                    yield break;
+                }
+                if (!isValid(parameters[2])) {
+                    yield return "sendtochaterror The specified measure '" + parameters[2] + "' is invalid!";
+                    yield break;
+                }
+                int temp = 0;
+                int temp2 = 0;
+                int.TryParse(parameters[1], out temp);
+                int.TryParse(parameters[2], out temp2);
+                if (Math.Max(leftValueIndex + 1, temp) == temp) {
+                    for (int i = leftValueIndex + 1; i < temp; i++) {
+                        Arrows[1].OnInteract();
+                        yield return new WaitForSeconds(0.05f);
+                    }
+                }
+                else if (Math.Max(leftValueIndex + 1, temp) == (leftValueIndex + 1)) {
+                    for (int i = leftValueIndex + 1; i > temp; i--) {
+                        Arrows[0].OnInteract();
+                        yield return new WaitForSeconds(0.05f);
+                    }
+                }
+                if (Math.Max(rightValueIndex + 1, temp2) == temp2) {
+                    for (int i = rightValueIndex + 1; i < temp2; i++) {
+                        Arrows[3].OnInteract();
+                        yield return new WaitForSeconds(0.05f);
+                    }
+                }
+                else if (Math.Max(rightValueIndex + 1, temp2) == (rightValueIndex + 1)) {
+                    for (int i = rightValueIndex + 1; i > temp2; i--) {
+                        Arrows[2].OnInteract();
+                        yield return new WaitForSeconds(0.05f);
+                    }
+                }
+                SubmitButton.OnInteract();
+            }
+            else if (parameters.Length == 2) {
+                yield return "sendtochaterror One measure was provided when 2 measures are needed to submit!";
+            }
+            else if (parameters.Length == 1) {
+                yield return "sendtochaterror Please include the measures that need to be submitted!";
+            }
+            yield break;
+        }
+    }
+
+    IEnumerator TwitchHandleForcedSolve() {
+        yield return ProcessTwitchCommand("submit " + start + " " + end);
     }
 }
