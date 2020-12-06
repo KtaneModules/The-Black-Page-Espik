@@ -124,8 +124,12 @@ public class TheBlackPage : MonoBehaviour {
     public IEnumerator FadeSheetMusic() {
         yield return new WaitForSeconds(3.0f);
         ToggleSheetMusic(false);
-        Lights[0].enabled = false;
-        Lights[1].enabled = false;
+        
+        if (!pressedPlay) {
+            Lights[0].enabled = false;
+            Lights[1].enabled = false;
+        }
+        
         canPlayIntro = true;
     }
 
@@ -173,11 +177,13 @@ public class TheBlackPage : MonoBehaviour {
             if (startFirstHalf == true) {
                 LightBulbs[0].material = BulbMaterials[1];
                 Lights[0].enabled = true;
+                Lights[1].enabled = false;
             }
 
             else {
                 LightBulbs[1].material = BulbMaterials[1];
                 Lights[1].enabled = true;
+                Lights[0].enabled = false;
             }
         }
 

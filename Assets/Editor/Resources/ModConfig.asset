@@ -14,7 +14,7 @@ MonoBehaviour:
   id: TheBlackPage
   title: The Black Page
   author: Espik
-  description: 'The Black Page v1.102
+  description: 'The Black Page v1.103
 
     "Every musician''s test to read."
 
@@ -26,6 +26,6 @@ MonoBehaviour:
 
 
     Source Code: https://github.com/Espik/The-Black-Page'
-  version: v1.102
+  version: v1.103
   outputFolder: build
   previewImage: {fileID: 2800000, guid: 5dccc9c8e69382343b06e1e999298c0b, type: 3}
