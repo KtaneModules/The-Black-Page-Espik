@@ -71,8 +71,13 @@ public class TheBlackPage : MonoBehaviour {
         Module.OnActivate += OnActivate;
     }
 
-    // Sets up the solution
+    // Sets up the solution and preps displays
     public void Start() {
+        // Scales the lights on the module to match with bomb size
+        float scalar = transform.lossyScale.x;
+        for (var i = 0; i < Lights.Length; i++)
+            Lights[i].range *= scalar;
+
         leftValueIndex = UnityEngine.Random.Range(0, 30);
         rightValueIndex = UnityEngine.Random.Range(0, 30);
 
@@ -120,16 +125,21 @@ public class TheBlackPage : MonoBehaviour {
         }
     }
 
+    // Resets the intro play sound static variable once this is destroyed
+    void OnDestroy() {
+        canPlayIntro = true;
+    }
+
     // Turns the sheet music off after the lights turn on
     public IEnumerator FadeSheetMusic() {
         yield return new WaitForSeconds(3.0f);
         ToggleSheetMusic(false);
-        
+
         if (!pressedPlay) {
             Lights[0].enabled = false;
             Lights[1].enabled = false;
         }
-        
+
         canPlayIntro = true;
     }
 
@@ -137,7 +147,7 @@ public class TheBlackPage : MonoBehaviour {
     // Arrow button is pressed
     public void ArrowPressed(int i) {
         Arrows[i].AddInteractionPunch(0.25f);
-        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, gameObject.transform);
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.BigButtonPress, Arrows[i].transform);
 
         if (moduleSolved == false) {
             // Loop around the index if bounds are reached
@@ -168,7 +178,7 @@ public class TheBlackPage : MonoBehaviour {
     // Play button is pressed
     public void PlayButtonPressed() {
         PlayButton.AddInteractionPunch();
-        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, gameObject.transform);
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, PlayButton.transform);
 
         // Turns the light on if this is the first time playing the track
         if (pressedPlay == false) {
@@ -196,20 +206,20 @@ public class TheBlackPage : MonoBehaviour {
     // Submit button is pressed
     public void SubmitButtonPressed() {
         SubmitButton.AddInteractionPunch();
-        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, gameObject.transform);
+        Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.ButtonPress, SubmitButton.transform);
         if (canSubmit == true && moduleSolved == false) {
 
             // Solve
             if (leftValueIndex + 1 == start && rightValueIndex + 1 == end) {
-                Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.CorrectChime, gameObject.transform);
-                GetComponent<KMBombModule>().HandlePass();
+                Audio.PlayGameSoundAtTransform(KMSoundOverride.SoundEffect.CorrectChime, transform);
+                Module.HandlePass();
                 moduleSolved = true;
                 Debug.LogFormat("[The Black Page #{0}] Module solved!", moduleId);
             }
 
             // Strike
             else {
-                GetComponent<KMBombModule>().HandleStrike();
+                Module.HandleStrike();
                 Debug.LogFormat("[The Black Page #{0}] Strike! You submitted measures {1} to {2}.", moduleId, leftValueIndex + 1, rightValueIndex + 1);
                 ToggleSheetMusic(true);
             }
@@ -291,8 +301,7 @@ public class TheBlackPage : MonoBehaviour {
     //twitch plays
     private bool isValid(string s) {
         int temp = 0;
-        bool check = false;
-        check = int.TryParse(s, out temp);
+        bool check = int.TryParse(s, out temp);
         if (check) {
             if (temp > 0 && temp < 31) {
                 return true;
@@ -323,40 +332,34 @@ public class TheBlackPage : MonoBehaviour {
             }
             else if (parameters.Length == 3) {
                 if (!isValid(parameters[1])) {
-                    yield return "sendtochaterror The specified measure '" + parameters[1] + "' is invalid!";
+                    yield return "sendtochaterror!f The specified measure '" + parameters[1] + "' is invalid!";
                     yield break;
                 }
                 if (!isValid(parameters[2])) {
-                    yield return "sendtochaterror The specified measure '" + parameters[2] + "' is invalid!";
+                    yield return "sendtochaterror!f The specified measure '" + parameters[2] + "' is invalid!";
                     yield break;
                 }
-                int temp = 0;
-                int temp2 = 0;
-                int.TryParse(parameters[1], out temp);
-                int.TryParse(parameters[2], out temp2);
-                if (Math.Max(leftValueIndex + 1, temp) == temp) {
-                    for (int i = leftValueIndex + 1; i < temp; i++) {
-                        Arrows[1].OnInteract();
-                        yield return new WaitForSeconds(0.05f);
-                    }
+                int temp = int.Parse(parameters[1]) - 1;
+                int temp2 = int.Parse(parameters[2]) - 1;
+                var difference = temp - leftValueIndex;
+                if (Math.Abs(difference) > 15) {
+                    difference = Math.Abs(difference) - 30;
+                    if (temp < leftValueIndex)
+                        difference = -difference;
                 }
-                else if (Math.Max(leftValueIndex + 1, temp) == (leftValueIndex + 1)) {
-                    for (int i = leftValueIndex + 1; i > temp; i--) {
-                        Arrows[0].OnInteract();
-                        yield return new WaitForSeconds(0.05f);
-                    }
+                for (int i = 0; i < Math.Abs(difference); i++) {
+                    Arrows[difference > 0 ? 1 : 0].OnInteract();
+                    yield return new WaitForSeconds(0.05f);
                 }
-                if (Math.Max(rightValueIndex + 1, temp2) == temp2) {
-                    for (int i = rightValueIndex + 1; i < temp2; i++) {
-                        Arrows[3].OnInteract();
-                        yield return new WaitForSeconds(0.05f);
-                    }
+                difference = temp2 - rightValueIndex;
+                if (Math.Abs(difference) > 15) {
+                    difference = Math.Abs(difference) - 30;
+                    if (temp2 < rightValueIndex)
+                        difference = -difference;
                 }
-                else if (Math.Max(rightValueIndex + 1, temp2) == (rightValueIndex + 1)) {
-                    for (int i = rightValueIndex + 1; i > temp2; i--) {
-                        Arrows[2].OnInteract();
-                        yield return new WaitForSeconds(0.05f);
-                    }
+                for (int i = 0; i < Math.Abs(difference); i++) {
+                    Arrows[difference > 0 ? 3 : 2].OnInteract();
+                    yield return new WaitForSeconds(0.05f);
                 }
                 SubmitButton.OnInteract();
             }
@@ -371,6 +374,7 @@ public class TheBlackPage : MonoBehaviour {
     }
 
     IEnumerator TwitchHandleForcedSolve() {
+        while (!canSubmit) yield return true;
         yield return ProcessTwitchCommand("submit " + start + " " + end);
     }
 }
